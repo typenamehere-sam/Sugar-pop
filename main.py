@@ -20,7 +20,7 @@ class Game:
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
-        pg.display.set_caption(f'Your Name - {self.clock.get_fps():.1f}')
+        pg.display.set_caption(f'fps: {self.clock.get_fps():.1f}')
 
     def draw(self):
         # Draw to the main Screen
