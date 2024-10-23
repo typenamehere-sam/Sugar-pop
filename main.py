@@ -1,3 +1,14 @@
+#############################################################
+# Module Name: Pygame Starter
+# Project: 
+# Date: 
+# By: Brett W. Huffman
+# Description: Change all these items for your implementation
+#############################################################
+
+# Remove the PyGame starter text - should be first in this file
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame as pg
 import sys
