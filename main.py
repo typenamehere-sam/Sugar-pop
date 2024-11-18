@@ -18,7 +18,7 @@ import dynamic_item
 import sugar_grain
 import bucket
 import level
-import messageDisplay
+import message_display
 
 class Game:
     def __init__(self) -> None:
@@ -43,11 +43,13 @@ class Game:
         self.level_grain_dropping = None
         self.mouse_down = False
         self.current_line = None
-        self.message_display = messageDisplay.MessageDisplay(font_size=72)
+        self.message_display = message_display.MessageDisplay(font_size=72)
         
         # Load the intro image
         self.intro_image = pg.image.load("./images/SugarPop.png").convert()  # Load the intro image
-#        self.intro_image = pg.transform.scale(self.intro_image, RES)  # Scale to screen resolution
+        # Get new height based on correct scale
+        scale_height = self.intro_image.get_height() * WIDTH / self.intro_image.get_width()
+        self.intro_image = pg.transform.scale(self.intro_image, (WIDTH, scale_height))  # Scale to screen resolution
         
         pg.time.set_timer(LOAD_NEW_LEVEL, 2000)  # Load in 2secs
 
