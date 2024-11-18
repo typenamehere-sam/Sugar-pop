@@ -24,9 +24,9 @@
         {
             "x1": 200,
             "y1": 400,
-            "x2": 400,
-            "y2": 450,
-            "color": "darkgray",
+            "x2": 600,
+            "y2": 750,
+            "color": "yellow",
             "line_width": 4,
             "friction": 0.5,
             "restitution": 0.6
