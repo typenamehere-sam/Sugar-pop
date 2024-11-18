@@ -1,3 +1,11 @@
+#############################################################
+# Module Name: Sugar Pop Static Item Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The static item implementation of the sugar pop game
+#############################################################
+
 import pygame as pg
 from Box2D.b2 import staticBody
 from settings import *
@@ -10,7 +18,7 @@ class static_item:
         self.color = color  # Color for rendering in Pygame
         self.line_width = line_width
         self.body = world.CreateStaticBody()  # Create a static body in the Box2D world
-
+        self.world = world
         # Create an edge fixture (line segment) between two points
         self.body.CreateEdgeFixture(vertices=[(x1 / SCALE, y1 / SCALE), (x2 / SCALE, y2 / SCALE)],
                                     friction=friction, restitution=restitution)
@@ -25,3 +33,11 @@ class static_item:
 
         # Draw the line on the Pygame screen
         pg.draw.line(screen, pg.Color(self.color), start, end, self.line_width)
+
+    def delete(self):
+        """
+        Delete the static item by destroying its Box2D body and clearing resources.
+        """
+        if self.body:
+            self.world.DestroyBody(self.body)  # Remove the static body from the Box2D world
+            self.body = None  # Clear the reference to the body

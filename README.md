@@ -1,6 +1,5 @@
-# PygameStarter
-
-A simple starter for Pygame
+### Welcome To
+![SugarPop Startup Screen](./images/SugarPop.png)
 
 
 

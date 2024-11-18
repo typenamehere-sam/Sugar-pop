@@ -1,3 +1,11 @@
+#############################################################
+# Module Name: Sugar Pop Sugar 'Grain' Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The sugar grain implementation of the sugar pop game
+#############################################################
+
 import pygame as pg
 from Box2D.b2 import dynamicBody, polygonShape
 from settings import SCALE, HEIGHT
@@ -11,6 +19,7 @@ class sugar_grain:
         :param x: Initial x position in Pygame coordinates.
         :param y: Initial y position in Pygame coordinates.
         """
+        self.world = world
         # Create the dynamic body in Box2D at the specified position
         self.body = world.CreateDynamicBody(position=(x / SCALE, y / SCALE))
 
@@ -37,10 +46,10 @@ class sugar_grain:
         screen_y = HEIGHT - pos.y * SCALE
         pg.draw.rect(screen, pg.Color('white'), (screen_x - 1, screen_y - 1, 2, 2))
 
-    def destroy(self, world):
+    def delete(self):
         """
         Remove the sugar grain from the Box2D world.
         
         :param world: The Box2D world to destroy the grain's body from.
         """
-        world.DestroyBody(self.body)
+        self.world.DestroyBody(self.body)

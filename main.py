@@ -1,3 +1,12 @@
+#############################################################
+# Module Name: Sugar Pop Main Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The main implementation of the sugar pop game
+#############################################################
+
+
 import pygame as pg
 import Box2D  # Import Box2D library
 from Box2D.b2 import (world, polygonShape, staticBody, dynamicBody)
@@ -8,6 +17,8 @@ import static_item
 import dynamic_item
 import sugar_grain
 import bucket
+import level
+import messageDisplay
 
 class Game:
     def __init__(self) -> None:
@@ -20,22 +31,67 @@ class Game:
         self.font = pg.font.SysFont(None, 36)  # Default font, size 36
 
         # Create a Box2D world with gravity
+        self.current_level = 0
+        self.level_complete = False
         self.world = world(gravity=(0, -9.8), doSleep=True)
-        self.statics = []
-        self.sugar_grains = []
         self.drawing_lines = []
+        self.sugar_grains = []
+        self.buckets = []
+        self.statics = []
+        self.total_sugar_count = None
+        self.level_spout_position = None
+        self.level_grain_dropping = None
         self.mouse_down = False
         self.current_line = None
-        self.bucket = bucket.Bucket(self.world, BUCKET_X, BUCKET_Y, 20, 40)
-        self.build_statics()
-        self.new_level()
+        self.message_display = messageDisplay.MessageDisplay(font_size=72)
+        
+        # Load the intro image
+        self.intro_image = pg.image.load("./images/SugarPop.png").convert()  # Load the intro image
+#        self.intro_image = pg.transform.scale(self.intro_image, RES)  # Scale to screen resolution
+        
+        pg.time.set_timer(LOAD_NEW_LEVEL, 2000)  # Load in 2secs
 
-    def new_level(self):
-        self.level_grain_dropping = False
-        pg.time.set_timer(START_FLOW, 5 * 1000) # 5 second
+    def load_level(self, levelnumber=0):
+        
+        # Destroy any current game objects
+        for item in self.sugar_grains:
+            item.delete()  # Delete all sugar
+        for item in self.drawing_lines:
+            item.delete() 
+        for item in self.buckets:
+            item.delete() 
+        for item in self.statics:
+            item.delete() 
+        self.sugar_grains = []
+        self.drawing_lines = []  # Clear the list
+        self.buckets = []
+        self.statics = []
+ 
+        new_level = LEVEL_FILE_NAME.replace("X", str(levelnumber))
+        self.level = level.Level(new_level)
+        
+        # Make sure the file was found
+        if not self.level or not self.level.data:
+            return False
+        else: # Do final steps to start the level
+            self.level_grain_dropping = False
+            self.level_spout_position = (self.level.data['spout_x'], self.level.data['spout_y'])
+            self.build_main_walls()
 
-    def build_statics(self):
-#        lstatic = static_item.static_item(self.world, WIDTH // 2, 10, 50, 4, 'red')
+            # Load buckets
+            for nb in self.level.data['buckets']:
+                self.buckets.append(bucket.Bucket(self.world, nb['x'], nb['y'], nb['width'], nb['height'], nb['needed_sugar']))
+            # Load static boxes
+            for nb in self.level.data['statics']:
+                self.statics.append(static_item.static_item(self.world, nb['x1'], nb['y1'], nb['x2'], nb['y2'], nb['color'], nb['line_width'], nb['friction'], nb['restitution']))
+            self.total_sugar_count = self.level.data['number_sugar_grains']
+            pg.time.set_timer(START_FLOW, 5 * 1000) # 5 second
+            self.message_display.show_message("Level Up", 10)
+            self.level_complete = False
+            return True
+
+    def build_main_walls(self):
+        '''Build the walls, ceiling and floor of screen'''
         # Floor
         lstatic = static_item.static_item(self.world, 0, 0, WIDTH, 0, 'red', 5)
         self.statics.append(lstatic)
@@ -48,8 +104,15 @@ class Game:
         # Ceiling
         lstatic = static_item.static_item(self.world, 0, HEIGHT, WIDTH, HEIGHT, 'red')
         self.statics.append(lstatic)
-        
+    
+    def check_all_buckets_exploded(self):
+        """
+        Check if all buckets have exploded.
+        """
+        return all(bucket.exploded for bucket in self.buckets)
+
     def update(self):
+        '''Update the program physics'''
         # Keep a overall iterator
         self.iter += 1
         
@@ -66,39 +129,64 @@ class Game:
         # Update our game counter
         if self.iter == 60:
             self.iter = 0
-            # for block in self.blocks[:]:  # Use a copy of the list to avoid modifying while iterating
-            #     if block.position.y * SCALE < 0:
-            #         self.remove_block(block)
 
         pg.display.set_caption(f'fps: {self.clock.get_fps():.1f}')
         
-        # Drop sugar if needed
-        if self.level_grain_dropping == True and self.iter % 20 == 0:
-            # Create new sugar to drop
-            new_sugar = sugar_grain.sugar_grain(self.world, LEVEL_START_POS[0], LEVEL_START_POS[1], 0.1)
-            self.sugar_grains.append(new_sugar)
-            # Check if its time to stop
-            if len(self.sugar_grains) >= NUMBER_OF_GRAINS:
-                self.level_grain_dropping = False
-
+        # Only do the following every 20 frames for less system stress
+        if self.iter % 20 == 0:
+            # Update any messages
+            self.message_display.update()
+            
             # Calculate buckets count by counting 
             # each grains position
-            self.bucket.count_reset()
+            # First explode or reset the counter on each
+            for bucket in self.buckets:
+                if bucket.count >= bucket.needed_sugar:
+                    bucket.explode(self.sugar_grains)
+                    # If all the buckets are gone, level up!
+                    # Check if all buckets are exploded
+                    if self.level_complete == False and self.check_all_buckets_exploded():
+                        self.level_complete = True
+                        self.message_display.show_message("Level Complete!", 2)
+                        pg.time.set_timer(LOAD_NEW_LEVEL, 2000)  # Schedule next level load
+
+                else:
+                    bucket.count_reset()
+            # Count the grains in the un-exploded buckets
             for grain in self.sugar_grains:
-                self.bucket.collect(grain)
+                for bucket in self.buckets:
+                    bucket.collect(grain)
+                
+            # Drop sugar if needed
+            if self.level_grain_dropping and self.level_grain_dropping == True:
+                # Create new sugar to drop
+                new_sugar = sugar_grain.sugar_grain(self.world, self.level_spout_position[0], self.level_spout_position[1], 0.1)
+                self.sugar_grains.append(new_sugar)
+                # Check if its time to stop
+                if len(self.sugar_grains) >= self.total_sugar_count:
+                    self.level_grain_dropping = False
+
+
             
     def draw_hud(self):
         """Draw the HUD displaying the number of grains."""
         # Prepare the text surface
-        text_surface = self.font.render(f'{NUMBER_OF_GRAINS-len(self.sugar_grains)} / {self.bucket.count}', True, (255, 255, 255))
-        # Draw the text surface on the screen
-        self.screen.blit(text_surface, (10, 10))  # Position at top-left corner
+        if self.total_sugar_count:
+            text_surface = self.font.render(f'{self.total_sugar_count-len(self.sugar_grains)}', True, (255, 255, 255))
+            # Draw the text surface on the screen
+            self.screen.blit(text_surface, (10, 10))  # Position at top-left corner
 
     def draw(self):
+        '''Draw the overall game.  Should call individual item draw() methods'''
         # Clear the screen
         self.screen.fill('black')
 
-        self.bucket.draw(self.screen)
+        # Only show the intro screen if we haven't loaded an image yet
+        if self.intro_image:
+            self.screen.blit(self.intro_image, (0, 0))  # Draw the intro image
+    
+        for bucket in self.buckets:
+            bucket.draw(self.screen)
 
         # Draw each block in the list
         for grain in self.sugar_grains:
@@ -107,23 +195,32 @@ class Game:
         # Draw the current dynamic line
         if self.current_line != None:
             self.current_line.draw(self.screen)
-            
+        
+        # Draw the user drawn lines
         for line in self.drawing_lines:
             line.draw(self.screen)
             
+        # Draw any statics
         for static in self.statics:
             static.draw(self.screen)
 
+        # Draw the nozzle (Remember to subtract y from the height)
+        if self.level_spout_position:
+            pg.draw.line(self.screen, (255, 165, 144), (self.level_spout_position[0], HEIGHT-self.level_spout_position[1]-10), (self.level_spout_position[0], HEIGHT-self.level_spout_position[1]), 5)
+        
         # Draw the heads-up display
         self.draw_hud()
-        
+
+        # Show any message needed        
+        self.message_display.draw(self.screen)
+
         # Update the display
         pg.display.update()
 
     def check_events(self):
-        # Check for keyboard events
+        '''Check for keyboard events'''
         for event in pg.event.get():
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+            if event.type == EXIT_APP or event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 pg.quit()
                 sys.exit()
             elif event.type == pg.MOUSEBUTTONDOWN:
@@ -135,7 +232,6 @@ class Game:
                 
             elif event.type == pg.MOUSEBUTTONUP:
                 self.mouse_down = False
-#                self.current_line.color('blue')
                 self.drawing_lines.append(self.current_line)
                 self.current_line = None
                 
@@ -152,8 +248,20 @@ class Game:
                 # Disable the timer after the first trigger
                 pg.time.set_timer(START_FLOW, 0)
                 
+            elif event.type == LOAD_NEW_LEVEL:
+                pg.time.set_timer(LOAD_NEW_LEVEL, 0)  # Clear the timer
+                self.intro_image = None
+                self.current_level += 1
+                if not self.load_level(self.current_level):
+                    self.message_display.show_message("You Win!", 5)  # End of game message
+                    pg.time.set_timer(EXIT_APP, 5000)  # Quit game after 5 seconds
+                else:
+                    self.message_display.show_message(f"Level {self.current_level} Start!", 2)
+                    
+                    
+                    
     def run(self):
-        # Run the game loop
+        '''Run the main game loop'''
         while True:
             self.check_events()
             self.update()

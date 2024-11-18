@@ -1,7 +1,15 @@
+#############################################################
+# Module Name: Sugar Pop Settings Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The settings implementation of the sugar pop game
+#############################################################
+
 import pygame as pg
 
 # Window settings
-RES = WIDTH, HEIGHT = 1024, 1024
+RES = WIDTH, HEIGHT = 800, 1024
 FPS = 60
 
 # Scaling factor (Pixels per meter)
@@ -14,12 +22,10 @@ BOX_COLLISION_TYPE = 2
 
 
 # Level Info
-BUCKET_X = 200
-BUCKET_Y = 120
-NUMBER_OF_GRAINS = 150
-LEVEL_GOAL = 100
-LEVEL_START_POS = (WIDTH//2, HEIGHT - 20)
+LEVEL_FILE_NAME = './levels/levelX.json'
 
 # User Defined Events
 START_FLOW = pg.USEREVENT + 1
 FLOW_DELAY = pg.USEREVENT + 2
+LOAD_NEW_LEVEL = pg.USEREVENT + 3
+EXIT_APP = pg.USEREVENT + 4

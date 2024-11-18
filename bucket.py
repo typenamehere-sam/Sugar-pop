@@ -1,9 +1,18 @@
+#############################################################
+# Module Name: Sugar Pop Bucket Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The bucket implementation of the sugar pop game
+#############################################################
+
 import pygame as pg
 from Box2D.b2 import staticBody, polygonShape
 from settings import SCALE, HEIGHT, WIDTH
+from math import sqrt
 
 class Bucket:
-    def __init__(self, world, x, y, width, height):
+    def __init__(self, world, x, y, width, height, needed_sugar):
         """
         Initialize the bucket with an open top by creating three separate static bodies 
         for each wall (left, right, bottom).
@@ -18,6 +27,7 @@ class Bucket:
         self.width = width / SCALE
         self.height = height / SCALE
         self.count = 0  # Counter for collected sugar grains
+        self.needed_sugar = needed_sugar
 
         wall_thickness = 0.1  # Thickness of the walls in Box2D units
 
@@ -41,11 +51,56 @@ class Bucket:
         bottom_wall_shape = polygonShape()
         bottom_wall_shape.SetAsBox(self.width / 2, wall_thickness)
         self.bottom_wall.CreateFixture(shape=bottom_wall_shape, friction=0.5, density=0)
+        
+        self.exploded = False  # Track if the bucket has exploded
 
+    def explode(self, grains):
+        """
+        Apply a radial force to all grains near the bucket and remove the bucket walls.
+        
+        :param grains: List of sugar grain objects in the game.
+        """
+        if self.exploded:
+            return  # Prevent multiple explosions
+
+        # Get the bucket's center position
+        bucket_center = (
+            self.bottom_wall.position.x,
+            self.bottom_wall.position.y + self.height / 2
+        )
+
+        # Apply radial force to each grain
+        for grain in grains:
+            grain_pos = grain.body.position
+
+            # Calculate the vector from the bucket center to the grain
+            dx = grain_pos.x - bucket_center[0]
+            dy = grain_pos.y - bucket_center[1]
+            distance = sqrt(dx**2 + dy**2)
+
+            if distance < 2:  # Only affect grains within a certain radius
+                # Normalize the vector
+                if distance > 0:
+                    dx /= distance
+                    dy /= distance
+
+                # Apply a radial impulse (adjust magnitude as needed)
+                impulse_magnitude = 10 / (distance + 0.1)  # Reduce force with distance
+                grain.body.ApplyLinearImpulse((dx * impulse_magnitude, dy * impulse_magnitude), grain.body.worldCenter, True)
+
+        # Remove the bucket walls
+        self.world.DestroyBody(self.left_wall)
+        self.world.DestroyBody(self.right_wall)
+        self.world.DestroyBody(self.bottom_wall)
+
+        self.exploded = True  # Mark the bucket as exploded
+        
     def draw(self, screen):
         """
         Draw the bucket with an open top on the Pygame screen.
         """
+        if self.exploded:
+            return  # Don't draw if the bucket has exploded
         # Convert Box2D coordinates to Pygame screen coordinates
         left_x = self.left_wall.position.x * SCALE
         left_y = HEIGHT - self.left_wall.position.y * SCALE
@@ -71,7 +126,8 @@ class Bucket:
         pg.draw.line(screen, (144, 238, 144), bottom_edge_start, bottom_edge_end, 2)
 
     def count_reset(self):
-        self.count = 0
+        if not self.exploded:
+            self.count = 0
         
     def collect(self, sugar_grain):
         """
@@ -79,6 +135,9 @@ class Bucket:
         
         :param sugar_grain: The sugar grain to check.
         """
+        if self.exploded:
+            return  # Don't count grains if the bucket has exploded
+
         grain_pos = sugar_grain.body.position
         bucket_pos = self.left_wall.position  # Use left wall position for bucket reference
 
@@ -90,3 +149,10 @@ class Bucket:
 
         return False  # Grain not collected
 
+
+    def delete(self):
+        if not self.exploded:
+            # Remove the bucket walls
+            self.world.DestroyBody(self.left_wall)
+            self.world.DestroyBody(self.right_wall)
+            self.world.DestroyBody(self.bottom_wall)

@@ -1,3 +1,11 @@
+#############################################################
+# Module Name: Sugar Pop Dynamic Item Module
+# Project: Sugar Pop Program
+# Date: Nov 17, 2024
+# By: Brett W. Huffman
+# Description: The dynamic item implementation of the sugar pop game
+#############################################################
+
 from Box2D.b2 import edgeShape
 from settings import *
 
@@ -40,3 +48,12 @@ class dynamic_item:
             start = (self.vertices[i][0] * SCALE, HEIGHT - self.vertices[i][1] * SCALE)
             end = (self.vertices[i + 1][0] * SCALE, HEIGHT - self.vertices[i + 1][1] * SCALE)
             pg.draw.line(screen, pg.Color(self.color), start, end, 3)
+
+    def delete(self):
+        """
+        Delete the dynamic item by destroying its Box2D body and clearing its vertices.
+        """
+        if self.body:
+            self.world.DestroyBody(self.body)  # Destroy the Box2D body
+            self.body = None  # Set the body to None to avoid reuse
+        self.vertices = []  # Clear the vertices list
