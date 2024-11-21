@@ -7,50 +7,57 @@
 #############################################################
 
 import pygame as pg
-from Box2D.b2 import staticBody, polygonShape
+import pymunk
 from settings import SCALE, HEIGHT, WIDTH
 from math import sqrt
 
 class Bucket:
-    def __init__(self, world, x, y, width, height, needed_sugar):
+    def __init__(self, space, x, y, width, height, needed_sugar):
         """
-        Initialize the bucket with an open top by creating three separate static bodies 
+        Initialize the bucket with an open top by creating three static segments 
         for each wall (left, right, bottom).
         
-        :param world: The Box2D world.
+        :param space: The Pymunk space.
         :param x: X position of the bucket's center in Pygame coordinates.
         :param y: Y position of the bucket's top in Pygame coordinates.
         :param width: Width of the bucket in pixels.
         :param height: Height of the bucket in pixels.
         """
-        self.world = world
+        self.space = space
         self.width = width / SCALE
         self.height = height / SCALE
         self.count = 0  # Counter for collected sugar grains
         self.needed_sugar = needed_sugar
 
-        wall_thickness = 0.1  # Thickness of the walls in Box2D units
+        wall_thickness = 0.2  # Thickness of the walls in physics units
+
+        # Convert Pygame coordinates to Pymunk coordinates
+        x_pymunk = x / SCALE
+        y_pymunk = y / SCALE # (HEIGHT - y) / SCALE  # Adjust y-coordinate for Pymunk's coordinate system
 
         # Left wall
-        left_wall_position = (x / SCALE - self.width / 2, y / SCALE - self.height / 2)
-        self.left_wall = self.world.CreateStaticBody(position=left_wall_position)
-        left_wall_shape = polygonShape()
-        left_wall_shape.SetAsBox(wall_thickness, self.height / 2)
-        self.left_wall.CreateFixture(shape=left_wall_shape, friction=0.5, density=0)
+        left_wall_start = (x_pymunk - self.width / 2, y_pymunk - self.height / 2)
+        left_wall_end = (x_pymunk - self.width / 2, y_pymunk + self.height / 2)
+        self.left_wall = pymunk.Segment(space.static_body, left_wall_start, left_wall_end, wall_thickness)
+        self.left_wall.friction = 0.5
+        self.left_wall.elasticity = 0.5
+        space.add(self.left_wall)
 
         # Right wall
-        right_wall_position = (x / SCALE + self.width / 2, y / SCALE - self.height / 2)
-        self.right_wall = self.world.CreateStaticBody(position=right_wall_position)
-        right_wall_shape = polygonShape()
-        right_wall_shape.SetAsBox(wall_thickness, self.height / 2)
-        self.right_wall.CreateFixture(shape=right_wall_shape, friction=0.5, density=0)
+        right_wall_start = (x_pymunk + self.width / 2, y_pymunk - self.height / 2)
+        right_wall_end = (x_pymunk + self.width / 2, y_pymunk + self.height / 2)
+        self.right_wall = pymunk.Segment(space.static_body, right_wall_start, right_wall_end, wall_thickness)
+        self.right_wall.friction = 0.5
+        self.right_wall.elasticity = 0.5
+        space.add(self.right_wall)
 
         # Bottom wall
-        bottom_wall_position = (x / SCALE, y / SCALE - self.height)
-        self.bottom_wall = self.world.CreateStaticBody(position=bottom_wall_position)
-        bottom_wall_shape = polygonShape()
-        bottom_wall_shape.SetAsBox(self.width / 2, wall_thickness)
-        self.bottom_wall.CreateFixture(shape=bottom_wall_shape, friction=0.5, density=0)
+        bottom_wall_start = (x_pymunk - self.width / 2, y_pymunk - self.height / 2)
+        bottom_wall_end = (x_pymunk + self.width / 2, y_pymunk - self.height / 2)
+        self.bottom_wall = pymunk.Segment(space.static_body, bottom_wall_start, bottom_wall_end, wall_thickness)
+        self.bottom_wall.friction = 0.5
+        self.bottom_wall.elasticity = 0.5
+        space.add(self.bottom_wall)
         
         self.exploded = False  # Track if the bucket has exploded
 
@@ -64,18 +71,16 @@ class Bucket:
             return  # Prevent multiple explosions
 
         # Get the bucket's center position
-        bucket_center = (
-            self.bottom_wall.position.x,
-            self.bottom_wall.position.y + self.height / 2
-        )
+        bucket_center_x = (self.left_wall.a[0] + self.right_wall.a[0]) / 2
+        bucket_center_y = (self.left_wall.a[1] + self.left_wall.b[1]) / 2
 
         # Apply radial force to each grain
         for grain in grains:
             grain_pos = grain.body.position
 
             # Calculate the vector from the bucket center to the grain
-            dx = grain_pos.x - bucket_center[0]
-            dy = grain_pos.y - bucket_center[1]
+            dx = grain_pos.x - bucket_center_x
+            dy = grain_pos.y - bucket_center_y
             distance = sqrt(dx**2 + dy**2)
 
             if distance < 2:  # Only affect grains within a certain radius
@@ -85,13 +90,12 @@ class Bucket:
                     dy /= distance
 
                 # Apply a radial impulse (adjust magnitude as needed)
-                impulse_magnitude = 10 / (distance + 0.1)  # Reduce force with distance
-                grain.body.ApplyLinearImpulse((dx * impulse_magnitude, dy * impulse_magnitude), grain.body.worldCenter, True)
+                impulse_magnitude = 20 / (distance + 0.1)  # Reduce force with distance
+                impulse = (dx * impulse_magnitude, dy * impulse_magnitude)
+                grain.body.apply_impulse_at_world_point(impulse, grain.body.position)
 
         # Remove the bucket walls
-        self.world.DestroyBody(self.left_wall)
-        self.world.DestroyBody(self.right_wall)
-        self.world.DestroyBody(self.bottom_wall)
+        self.space.remove(self.left_wall, self.right_wall, self.bottom_wall)
 
         self.exploded = True  # Mark the bucket as exploded
         
@@ -101,29 +105,17 @@ class Bucket:
         """
         if self.exploded:
             return  # Don't draw if the bucket has exploded
-        # Convert Box2D coordinates to Pygame screen coordinates
-        left_x = self.left_wall.position.x * SCALE
-        left_y = HEIGHT - self.left_wall.position.y * SCALE
-        right_x = self.right_wall.position.x * SCALE
-        right_y = HEIGHT - self.right_wall.position.y * SCALE
-        bottom_x = self.bottom_wall.position.x * SCALE
-        bottom_y = HEIGHT - self.bottom_wall.position.y * SCALE
 
-        half_width = self.width * SCALE / 2
-        half_height = self.height * SCALE / 2
+        color = (144, 238, 144)  # Light green color
 
-        # Define points for the left, right, and bottom edges of the bucket
-        left_edge_start = (left_x, left_y - half_height)
-        left_edge_end = (left_x, left_y + half_height)
-        right_edge_start = (right_x, right_y - half_height)
-        right_edge_end = (right_x, right_y + half_height)
-        bottom_edge_start = (bottom_x - half_width+1, bottom_y)
-        bottom_edge_end = (bottom_x + half_width+1, bottom_y)
+        # Helper function to convert Pymunk coordinates to Pygame coordinates
+        def to_pygame(p):
+            return int(p[0] * SCALE), int(HEIGHT - p[1] * SCALE)
 
         # Draw the bucket edges
-        pg.draw.line(screen, (144, 238, 144), left_edge_start, left_edge_end, 2)
-        pg.draw.line(screen, (144, 238, 144), right_edge_start, right_edge_end, 2)
-        pg.draw.line(screen, (144, 238, 144), bottom_edge_start, bottom_edge_end, 2)
+        pg.draw.line(screen, color, to_pygame(self.left_wall.a), to_pygame(self.left_wall.b), 2)
+        pg.draw.line(screen, color, to_pygame(self.right_wall.a), to_pygame(self.right_wall.b), 2)
+        pg.draw.line(screen, color, to_pygame(self.bottom_wall.a), to_pygame(self.bottom_wall.b), 2)
 
     def count_reset(self):
         if not self.exploded:
@@ -139,20 +131,22 @@ class Bucket:
             return  # Don't count grains if the bucket has exploded
 
         grain_pos = sugar_grain.body.position
-        bucket_pos = self.left_wall.position  # Use left wall position for bucket reference
+
+        # Get bucket boundaries
+        left = self.left_wall.a[0]
+        right = self.right_wall.a[0]
+        bottom = self.bottom_wall.a[1]
+        top = self.left_wall.b[1]
 
         # Check if the grain's position is within the bucket's bounding box
-        if (bucket_pos.x <= grain_pos.x <= bucket_pos.x + self.width and
-                bucket_pos.y - self.height - 10 <= grain_pos.y <= bucket_pos.y):
+        if left <= grain_pos.x <= right and bottom <= grain_pos.y <= top:
             self.count += 1
             return True  # Indicate that the grain was collected
 
         return False  # Grain not collected
 
-
     def delete(self):
         if not self.exploded:
             # Remove the bucket walls
-            self.world.DestroyBody(self.left_wall)
-            self.world.DestroyBody(self.right_wall)
-            self.world.DestroyBody(self.bottom_wall)
+            self.space.remove(self.left_wall, self.right_wall, self.bottom_wall)
+            self.exploded = True

@@ -5,32 +5,47 @@
 # By: Brett W. Huffman
 # Description: The sugar grain implementation of the sugar pop game
 #############################################################
-
 import pygame as pg
-from Box2D.b2 import dynamicBody, polygonShape
+import pymunk
 from settings import SCALE, HEIGHT
 
 class sugar_grain:
-    def __init__(self, world, x, y, friction=0.3):
+    def __init__(self, space, x, y, friction=0.3):
         """
-        Initialize a sugar grain as a small dynamic body in Box2D.
+        Initialize a sugar grain as a small dynamic body in Pymunk.
         
-        :param world: The Box2D world where the grain will be created.
+        :param space: The Pymunk space where the grain will be created.
         :param x: Initial x position in Pygame coordinates.
         :param y: Initial y position in Pygame coordinates.
         """
-        self.world = world
-        # Create the dynamic body in Box2D at the specified position
-        self.body = world.CreateDynamicBody(position=(x / SCALE, y / SCALE))
+        self.space = space
 
-        # Add a small 2x2 polygon fixture to the body
-        box_fixture = polygonShape(box=(1 / SCALE, 1 / SCALE))
-        self.body.CreateFixture(shape=box_fixture, density=1.0, friction=friction)
+        # Convert Pygame coordinates to Pymunk coordinates (Pymunk's Y-axis points upwards)
+        pos_x = x / SCALE
+        pos_y = y / SCALE #(HEIGHT - y) / SCALE  # Adjust Y-axis
+
+        # Create a dynamic body with mass and moment of inertia
+        mass = 1.0
+        size = 2 / SCALE  # Size of the square in physics units
+        moment = pymunk.moment_for_box(mass, (size, size))
+
+        self.body = pymunk.Body(mass, moment)
+        self.body.position = pos_x, pos_y
+
+        # Define a small square shape attached to the body
+        s = size / 2  # Half the size for vertex calculations
+        vertices = [(-s, -s), (-s, s), (s, s), (s, -s)]
+        self.shape = pymunk.Poly(self.body, vertices)
+        self.shape.friction = friction
+        self.shape.elasticity = 0.5  # Adjust as needed
+
+        # Add the body and shape to the space
+        self.space.add(self.body, self.shape)
         
     def update(self):
         """
-        Update method for SugarGrain.
-        In this case, Box2D handles the physics, so nothing is needed here.
+        Update method for sugar_grain.
+        In this case, Pymunk handles the physics, so nothing is needed here.
         """
         pass
 
@@ -44,12 +59,12 @@ class sugar_grain:
         pos = self.body.position
         screen_x = pos.x * SCALE
         screen_y = HEIGHT - pos.y * SCALE
+
+        # Draw a small square at this position
         pg.draw.rect(screen, pg.Color('white'), (screen_x - 1, screen_y - 1, 2, 2))
 
     def delete(self):
         """
-        Remove the sugar grain from the Box2D world.
-        
-        :param world: The Box2D world to destroy the grain's body from.
+        Remove the sugar grain from the Pymunk space.
         """
-        self.world.DestroyBody(self.body)
+        self.space.remove(self.body, self.shape)
