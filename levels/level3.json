@@ -1,0 +1,112 @@
+{
+    "number_sugar_grains": 200,
+    "statics": [
+        {
+            "x1": 0,
+            "y1": 150,
+            "x2": 80,
+            "y2": 150,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        },
+        {
+            "x1": 0,
+            "y1": 350,
+            "x2": 80,
+            "y2": 350,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        },
+        {
+            "x1": 0,
+            "y1": 550,
+            "x2": 80,
+            "y2": 550,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        },
+        {
+            "x1": 600,
+            "y1": 150,
+            "x2": 520,
+            "y2": 150,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        },
+        {
+            "x1": 600,
+            "y1": 350,
+            "x2": 520,
+            "y2": 350,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        },
+        {
+            "x1": 600,
+            "y1": 550,
+            "x2": 520,
+            "y2": 550,
+            "color": "gray",
+            "line_width": 3,
+            "friction": 0.3,
+            "restitution": 0.5
+        }
+    ],
+    "buckets": [
+        {
+            "x": 20,
+            "y": 110,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        },
+        {
+            "x": 20,
+            "y": 310,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        },
+        {
+            "x": 20,
+            "y": 510,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        },
+        {
+            "x": 540,
+            "y": 110,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        },
+        {
+            "x": 540,
+            "y": 310,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        },
+        {
+            "x": 540,
+            "y": 510,
+            "width": 40,
+            "height": 40,
+            "needed_sugar": 30
+        }
+    ],
+    "spout_x": 300,
+    "spout_y": 850,
+    "time_to_complete_level": 120
+}

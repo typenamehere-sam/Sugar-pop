@@ -3,28 +3,28 @@
     "statics": [
         {
             "x1": 100,
-            "y1": 300,
+            "y1": 500,
             "x2": 300,
-            "y2": 350,
+            "y2": 250,
             "color": "gray",
             "line_width": 3,
-            "friction": 0.4,
+            "friction": 0.3,
             "restitution": 0.5
         },
         {
             "x1": 300,
-            "y1": 350,
+            "y1": 250,
             "x2": 500,
-            "y2": 300,
+            "y2": 500,
             "color": "gray",
             "line_width": 3,
-            "friction": 0.4,
+            "friction": 0.3,
             "restitution": 0.5
         },
         {
-            "x1": 200,
+            "x1": 520,
             "y1": 400,
-            "x2": 600,
+            "x2": 620,
             "y2": 750,
             "color": "yellow",
             "line_width": 4,
@@ -49,6 +49,6 @@
         }
     ],
     "spout_x": 300,
-    "spout_y": 850,
+    "spout_y": 650,
     "time_to_complete_level": 90
 }
