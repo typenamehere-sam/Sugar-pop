@@ -27,8 +27,10 @@ class StaticItem:
         self.space = space
 
         # Convert Pygame coordinates to Pymunk coordinates
-        pymunk_x1, pymunk_y1 = x1 / SCALE, (HEIGHT - y1) / SCALE
-        pymunk_x2, pymunk_y2 = x2 / SCALE, (HEIGHT - y2) / SCALE
+        # pymunk_x1, pymunk_y1 = x1 / SCALE, (HEIGHT - y1) / SCALE
+        # pymunk_x2, pymunk_y2 = x2 / SCALE, (HEIGHT - y2) / SCALE
+        pymunk_x1, pymunk_y1 = x1 / SCALE, y1 / SCALE
+        pymunk_x2, pymunk_y2 = x2 / SCALE, y2 / SCALE
 
         # Create a static body for the space
         self.body = space.static_body

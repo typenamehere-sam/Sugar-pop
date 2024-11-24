@@ -32,9 +32,9 @@
             "restitution": 0.5
         },
         {
-            "x1": 600,
+            "x1": 944,
             "y1": 150,
-            "x2": 520,
+            "x2": 1024,
             "y2": 150,
             "color": "gray",
             "line_width": 3,
@@ -42,9 +42,9 @@
             "restitution": 0.5
         },
         {
-            "x1": 600,
+            "x1": 944,
             "y1": 350,
-            "x2": 520,
+            "x2": 1024,
             "y2": 350,
             "color": "gray",
             "line_width": 3,
@@ -52,9 +52,9 @@
             "restitution": 0.5
         },
         {
-            "x1": 600,
+            "x1": 944,
             "y1": 550,
-            "x2": 520,
+            "x2": 1024,
             "y2": 550,
             "color": "gray",
             "line_width": 3,
@@ -64,49 +64,49 @@
     ],
     "buckets": [
         {
-            "x": 20,
-            "y": 110,
+            "x": 50,
+            "y": 180,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         },
         {
-            "x": 20,
-            "y": 310,
+            "x": 50,
+            "y": 380,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         },
         {
-            "x": 20,
-            "y": 510,
+            "x": 50,
+            "y": 580,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         },
         {
-            "x": 540,
-            "y": 110,
+            "x": 974,
+            "y": 180,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         },
         {
-            "x": 540,
-            "y": 310,
+            "x": 974,
+            "y": 380,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         },
         {
-            "x": 540,
-            "y": 510,
+            "x": 974,
+            "y": 580,
             "width": 40,
             "height": 40,
             "needed_sugar": 30
         }
     ],
-    "spout_x": 300,
-    "spout_y": 850,
+    "spout_x": 512,
+    "spout_y": 790,
     "time_to_complete_level": 120
 }
