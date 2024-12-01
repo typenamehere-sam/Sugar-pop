@@ -1,8 +1,8 @@
 #############################################################
 # Module Name: Sugar Pop Main Module
 # Project: Sugar Pop Program
-# Date: Nov 17, 2024
-# By: Brett W. Huffman
+# Date: Nov 25, 2024
+# By: Samwel Obiero
 # Description: The main implementation of the sugar pop game
 #############################################################
 
@@ -29,10 +29,10 @@ class Game:
         self.font = pg.font.SysFont(None, 36)  # Default font, size 36
 
         # Create a Pymunk space with gravity
-        self.current_level = 2 # Start game at 0
+        self.current_level = 3 # Start game at 0
         self.level_complete = False
         self.space = pymunk.Space()
-        self.space.gravity = (0, -9)  # Gravity pointing downwards in Pymunk's coordinate system
+        self.space.gravity = (0, -10)  # Gravity pointing downwards in Pymunk's coordinate system
         # Iterations defaults to 10. Higher is more accurate collison detection
         self.space.iterations = 30 
 
@@ -53,7 +53,7 @@ class Game:
         scale_height = self.intro_image.get_height() * WIDTH / self.intro_image.get_width()
         self.intro_image = pg.transform.scale(self.intro_image, (WIDTH, int(scale_height)))  # Scale to screen resolution
         
-        pg.time.set_timer(LOAD_NEW_LEVEL, 2000)  # Load in 2 seconds
+        pg.time.set_timer(LOAD_NEW_LEVEL, 5000)  # Load in 2 seconds
 
     def load_level(self, levelnumber=0):
         # Destroy any current game objects
@@ -91,7 +91,72 @@ class Game:
             pg.time.set_timer(START_FLOW, 5 * 1000)  # 5 seconds
             self.message_display.show_message("Level Up", 10)
             self.level_complete = False
+            
+
+        
+            self.create_seesaw()
+
+            self.total_sugar_count = self.level.data ['number_sugar_grains']
+            pg.time.set_timer (START_FLOW, 5*1000)
+            self.message_display.show_message ("level up", 10)
+            self.level_complete = False
             return True
+
+    # def create_seesaw (self):
+    #     """"make a dynamic seesaw that is able to rotate""" 
+    #     #body of the seesaw
+    #     seesaw_body = pymunk.Body (10, pymunk.moment_for_box(10, (224,10))) 
+    #     seesaw_body.position = (512, 300)
+
+    #     #shape of the seesaw
+    #     seesaw_shape = pymunk.Poly.create_box(seesaw_body, (224, 10))
+    #     seesaw_shape.friction = 0.8
+    #     seesaw_shape.color = pg.color ("brown")
+    #     self.space.add(seesaw_body, seesaw_shape)
+
+    #     #create a static center point for the seesaw
+    #     pivot_joint = pymunk.Pinjoint (self.space.static_body, seesaw_body, (512,300))
+    #     self.space.add (pivot_joint)
+
+    #     #add rotational spring to stabilize the seesaw
+    #     spring = pymunk.DampedRotarySpring (self.space.static_body, seesaw_body, 0.0, 500.0, 50.0)
+    #     self.space.add(spring)
+
+    #     #store the components for drawing
+    #     self.seesaw_body = seesaw_body
+    #     self.seesaw_shape = seesaw_shape          
+
+    def create_seesaw (self, pivot_x, pivot_y, width, plank_lenth, color):
+        #pivot
+        pivot_body = pymunk.Body (body_type = pymunk.Body.STATIC)
+        pivot_body.position = pivot_x, pivot_y
+        pivot_shape = pymunk.Circle (pivot_body, radius = 5)
+        pivot_shape.color = pg.color ("red")
+        self.space.add (pivot_body, pivot_shape)
+
+        #create the seesaw plank
+        plank_body = pymunk.Body()
+        plank_body.position = pivot_x, pivot_y
+        plank_shape = pymunk.segment(plank_body, (-plank_length / 2, 0), (plank_length / 2, 0), width)
+        plank_shape.density = 1
+        plank_shape.elasticity = 0.5
+        plank_shape.friction = 0.3
+        self.space.add (plank_body, plank_shape)
+
+        #pivot_joint
+        pivot_joint = pymunk.PivotJoint(pivot_body, plank_body, (pivot_x, pivot_y))
+        self.space.add(pivot_joint)
+
+        # Store the seesaw components for drawing
+        self.seesaw = {
+        "pivot": pivot_shape,
+        "plank_body": plank_body,
+        "plank_shape": plank_shape,
+        "color": color,
+    }
+
+
+
 
     def build_main_walls(self):
         '''Build the walls, ceiling, and floor of the screen'''
@@ -116,6 +181,9 @@ class Game:
 
     def update(self):
         '''Update the program physics'''
+        # if self.is_paused:
+        #     return
+
         # Keep an overall iterator
         self.iter += 1
         
@@ -173,6 +241,21 @@ class Game:
             # Draw the text surface on the screen
             self.screen.blit(text_surface, (10, 10))  # Position at top-left corner
 
+    def draw_seesaw(self, screen):
+        if hasattr (self, 'seesaw') and self.seesaw:
+            #pivot
+            pivot_pos = self.seesaw ['pivot'].body.position
+            pg.draw.circle (screen, (255,0,0), (int (pivot_pos.x), HEIGHT - int(pivot_pos.y)), 5)
+
+            #draw plank
+            body = self.seesaw ['plank_body']
+            shape = self.seesaw ['plank_shape']
+            start = body.position + shape.a.rotated (body.angle)
+            end = body.position + shape.b.roteted(body.angle)
+            pg.draw.line (screen, self.seesaw ['color'], (start.x, HEIGHT - start.y), (end.x, HEIGHT - end.y), 5)
+
+
+
     def draw(self):
         '''Draw the overall game. Should call individual item draw() methods'''
         # Clear the screen
@@ -201,18 +284,35 @@ class Game:
         for static in self.statics:
             static.draw(self.screen)
 
-        # Draw the nozzle (Remember to subtract y from the height)
-        if self.level_spout_position:
-            pg.draw.line(
-                self.screen, 
-                (255, 165, 144), 
-                (self.level_spout_position[0], HEIGHT - self.level_spout_position[1] - 10), 
-                (self.level_spout_position[0], HEIGHT - self.level_spout_position[1]), 
-                5
-            )
+        # #draw the seesaw
+        # if hasattr(self, 'seesaw_body') and hasattr (self, 'seesaw_shape'):
+        #     #get the seesaw endpoints
+        #     body = self.seesaw_body
+        #     shape = self.seesaw_shape
+        #     vertices = shape.get_vertices()
+        #     transformed_vertices = [body.local_to_world (v) for v in vertices]
+        #     pg.draw.polygon (
+        #         self.screen,
+        #         shape.color,
+        #         [(v.x, HEIGHT - v.y) for v in transformed_vertices]
+        #     )
+
+        # # Draw the nozzle (Remember to subtract y from the height)
+        # if self.level_spout_position:
+        #     pg.draw.line(
+        #         self.screen, 
+        #         (255, 165, 144), 
+        #         (self.level_spout_position[0], HEIGHT - self.level_spout_position[1] - 10), 
+        #         (self.level_spout_position[0], HEIGHT - self.level_spout_position[1]), 
+        #         5
+        #     )
         
         # Draw the heads-up display
         self.draw_hud()
+
+        #draw the seesaw
+        self.draw_seesaw(self.screen)
+        
 
         # Show any messages needed        
         self.message_display.draw(self.screen)
@@ -220,16 +320,37 @@ class Game:
         # Update the display
         pg.display.update()
 
+    # def draw_seesaw(self, screen):
+    #     if hasattr (self, 'seesaw') and self.seesaw:
+    #         #pivot
+    #         pivot_pos = self.seesaw ['pivot'].body.position
+    #         pg.draw.circle (screen, (255,0,0), (int (pivot_pos.x), HEIGHT - int(pivot_pos.y)), 5)
+
+    #         #draw plank
+    #         body = self.seesaw ['plank_body']
+    #         shape = self.seesaw ['plank_shape']
+    #         start = body.position + shape.a.rotated (body.angle)
+    #         end = body.position + shape.b.roteted(body.angle)
+    #         pg.draw.line (screen, self.seesaw ['color'], (start.x, HEIGHT - start.y), (end.x, HEIGHT - end.y), 5)
+
+
+
+
     def check_events(self):
         '''Check for keyboard and mouse events'''
         for event in pg.event.get():
             if event.type == EXIT_APP or event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 pg.quit()
                 sys.exit()
+
+                #implement a pause
+            elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                self.is_paused = not self.is_paused
+
             elif event.type == pg.MOUSEBUTTONDOWN:
                 self.mouse_down = True
                 # Get mouse position and start a new dynamic line
-                mouse_x, mouse_y = pg.mouse.get_pos()
+                mouse_x, mouse_y = pg.mouse.get_pos()  
                 self.current_line = dynamic_item.DynamicItem(self.space, 'blue')
                 self.current_line.add_vertex(mouse_x, mouse_y)
                 
